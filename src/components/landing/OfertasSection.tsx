@@ -14,6 +14,8 @@ import {
 const plans = [
   {
     id: "experience",
+    hrefButton:
+      "https://payment-link-v3.pagar.me/pl_zl8mvbaRwpMqnzYs2SlA5e4ZKVjo3Qr0",
     name: "Kit 1 Mês",
     subtitle: "Experiência",
     originalPrice: "R$ 495,00",
@@ -30,6 +32,8 @@ const plans = [
   },
   {
     id: "transformation",
+    hrefButton:
+      "https://payment-link-v3.pagar.me/pl_zygDjM2v1mWp31SW3hw74dPbZwAJVEle",
     name: "Kit 3 Meses",
     subtitle: "Transformação Completa",
     originalPrice: "R$ 897,00",
@@ -156,7 +160,7 @@ const OfertasSection = () => {
 
               {/* CTA */}
               <motion.a
-                href="#"
+                href={plan.hrefButton}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={`block w-full text-center py-4 rounded-full font-medium transition-all duration-300 min-h-[48px] flex items-center justify-center ${
