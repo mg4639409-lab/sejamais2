@@ -38,7 +38,7 @@ const PLANS = {
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia de 90 dias",
       "Acesso ao grupo VIP",
     ],
@@ -59,7 +59,7 @@ const PLANS = {
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia 90 dias",
     ],
     featured: false,
@@ -78,7 +78,7 @@ const PLANS = {
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia 90 dias",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
@@ -212,7 +212,7 @@ fastify.post("/api/checkout", async (request, reply) => {
               ok: true,
               url,
               reused: true,
-              shippingCarrier: "Melhor Envio",
+              shippingCarrier: "Sedex",
               source: "env",
             });
           }
@@ -235,7 +235,7 @@ fastify.post("/api/checkout", async (request, reply) => {
         ok: true,
         url,
         reused: true,
-        shippingCarrier: "Melhor Envio",
+        shippingCarrier: "Sedex",
         source: "env",
       });
     }
@@ -276,7 +276,7 @@ fastify.post("/api/checkout", async (request, reply) => {
           ok: true,
           url: maybeArray[0].url,
           reused: true,
-          shippingCarrier: "Melhor Envio",
+          shippingCarrier: "Sedex",
         });
       }
     }
@@ -308,9 +308,9 @@ fastify.post("/api/checkout", async (request, reply) => {
         items: [
           {
             // incluir transportadora no nome do item para que apareça no checkout
-            name: `${plan.name} — Envio: Melhor Envio`,
+            name: `${plan.name} — Envio: Sedex`,
             // descrição usada pelo checkout do Pagar.me
-            description: `EU+ — suplemento rejuvenescedor — Frete Grátis (Envio via Melhor Envio)`,
+            description: `EU+ — suplemento rejuvenescedor — Frete Grátis (Envio via Sedex)`,
             amount: plan.amount,
             default_quantity: 1,
             shipping_cost: 0,
@@ -352,7 +352,7 @@ fastify.post("/api/checkout", async (request, reply) => {
               {
                 id: plan.id,
                 // título curto exibido no checkout — acrescenta transportadora
-                title: `${plan.name} — Frete Grátis (Melhor Envio)`,
+                title: `${plan.name} — Frete Grátis (Sedex)`,
                 unit_price: plan.amount,
                 quantity: 1,
                 tangible: true,
@@ -430,7 +430,7 @@ fastify.post("/api/checkout", async (request, reply) => {
     return reply.send({
       ok: true,
       url,
-      shippingCarrier: "Melhor Envio",
+      shippingCarrier: "Sedex",
       raw: createJson,
     });
   } catch (err) {

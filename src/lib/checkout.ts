@@ -27,7 +27,7 @@ export async function createCheckout(
     return json
       ? {
           ...(json as any),
-          shippingCarrier: json.shippingCarrier ?? "Melhor Envio",
+          shippingCarrier: json.shippingCarrier ?? "Sedex",
         }
       : { ok: false, message: `status:${res.status}` };
   } catch (err) {

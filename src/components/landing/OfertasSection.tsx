@@ -48,7 +48,7 @@ const legacyPlans = [
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia de 90 dias",
       "Acesso ao grupo VIP",
     ],
@@ -67,7 +67,7 @@ const legacyPlans = [
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia 90 dias",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
@@ -87,7 +87,7 @@ const legacyPlans = [
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia 90 dias",
     ],
     featured: false,
@@ -133,14 +133,14 @@ const OfertasSection = () => {
       if (res?.ok && res.url) {
         toast({
           title: "Envio",
-          description: `Envio por ${res.shippingCarrier ?? "Melhor Envio"} — Frete Grátis de 3 a 7 dias!`,
+          description: `Envio por ${res.shippingCarrier ?? "Sedex"} — Frete Grátis de 3 a 7 dias!`,
         });
         window.open(res.url, "_blank", "noopener");
       } else if (res?.url) {
         // fallback link available
         toast({
           title: "Checkout",
-          description: `Abrindo link de pagamento — envio por ${res.shippingCarrier ?? "Melhor Envio — Frete Grátis de 3 a 7 dias"}`,
+          description: `Abrindo link de pagamento — envio por ${res.shippingCarrier ?? "Sedex — Frete Grátis de 3 a 7 dias"}`,
         });
         window.open(res.url, "_blank", "noopener");
       } else {
@@ -167,6 +167,21 @@ const OfertasSection = () => {
     await handleCheckout(selectedPlan);
     setSelectedPlan(null);
   };
+
+  const getEstimatedArrival = useCallback(() => {
+    const now = new Date();
+    const arrival = new Date(now);
+    arrival.setDate(now.getDate() + 7);
+    const weekday = new Intl.DateTimeFormat("pt-BR", {
+      weekday: "long",
+    }).format(arrival);
+    const date = new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+    }).format(arrival);
+    return `${weekday} ${date}`;
+  }, []);
 
   return (
     <section
@@ -258,7 +273,7 @@ const OfertasSection = () => {
                   {plan.installments}
                 </div>
                 <div className="text-sm text-teal-primary mt-2 font-semibold">
-                  Envio: Melhor Envio — Frete Grátis
+                  Envio: Sedex — Frete Grátis
                 </div>
               </div>
 
@@ -322,7 +337,7 @@ const OfertasSection = () => {
         >
           <div className="flex items-center gap-3 text-gray-medium">
             <Truck className="w-6 h-6 text-teal-primary" />
-            <span className="text-sm">Frete Grátis — Melhor Envio</span>
+            <span className="text-sm">Frete Grátis — Sedex</span>
           </div>
           <div className="flex items-center gap-3 text-gray-medium">
             <Shield className="w-6 h-6 text-teal-primary" />
@@ -338,21 +353,21 @@ const OfertasSection = () => {
           </div>
         </motion.div>
 
-        {/* Confirmation dialog: mostra claramente que o envio é via Melhor Envio */}
+        {/* Confirmation dialog: mostra claramente que o envio é via Sedex */}
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirmar compra</DialogTitle>
               <DialogDescription>
-                Envio por <strong>Melhor Envio</strong> — Frete Grátis. <br />{" "}
-                <br /> Você será redirecionado para o checkout seguro do
-                Pagar.me para concluir o pagamento.
+                Envio por <strong>Sedex</strong> — Frete Grátis. <br /> <br />{" "}
+                Você será redirecionado para o checkout seguro do Pagar.me para
+                concluir o pagamento.
               </DialogDescription>
               <DialogDescription className="flex items-center justify-between p-10">
                 <div className="flex flex-col">
-                  <h3>Melhor Envio</h3>
+                  <h3>Sedex</h3>
                   <p className="font-bold">
-                    Entrega de 3 a 7 dias - Frete grátis
+                    Entrega de 3 a 7 dias - chegará na {getEstimatedArrival()}
                   </p>
                 </div>
                 <div className="relative rounded-full p-5 bg-transparent-600 border border-teal-primary">

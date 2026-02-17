@@ -21,7 +21,7 @@ const PLANS = {
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia de 90 dias",
       "Acesso ao grupo VIP",
     ],
@@ -43,7 +43,7 @@ const PLANS = {
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia 90 dias",
     ],
     featured: false,
@@ -62,7 +62,7 @@ const PLANS = {
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Melhor Envio",
+      "Frete Grátis — Sedex",
       "Garantia 90 dias",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
@@ -165,7 +165,7 @@ fastify.post("/api/checkout", async (request, reply) => {
         ],
         shipping: {
           amount: 0,
-          description: "Frete Grátis — Melhor Envio",
+          description: "Frete Grátis — Sedex",
           type: "Standard",
         },
       },
