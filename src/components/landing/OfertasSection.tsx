@@ -367,7 +367,7 @@ const OfertasSection = () => {
                 <div className="flex flex-col">
                   <h3>Sedex</h3>
                   <p className="font-bold">
-                    Entrega de 3 a 7 dias - chegará na {getEstimatedArrival()}
+                    Entrega de 3 a 7 dias - chegará até {getEstimatedArrival()}
                   </p>
                 </div>
                 <div className="relative rounded-full p-5 bg-transparent-600 border border-teal-primary">
