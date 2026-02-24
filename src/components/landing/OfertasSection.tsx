@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState, useCallback, useEffect } from "react";
 import { createCheckout } from "@/lib/checkout";
+import trackingLib from "@/lib/tracking";
 import { toast } from "@/hooks/use-toast";
 import {
   Check,
@@ -125,11 +126,22 @@ const OfertasSection = () => {
     };
   }, []);
 
+  // ensure we have a leadId and capture fbclid on first load
+  useEffect(() => {
+    try {
+      trackingLib.ensureLeadId();
+      trackingLib.saveFbclidIfPresent();
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   const handleCheckout = useCallback(async (planId: string | null) => {
     if (!planId) return;
     setLoadingPlan(planId);
     try {
-      const res = await createCheckout(planId);
+      const tracking = trackingLib.getTracking();
+      const res = await createCheckout(planId, tracking ?? undefined);
       if (res?.ok && res.url) {
         toast({
           title: "Envio",

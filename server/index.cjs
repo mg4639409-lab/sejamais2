@@ -118,7 +118,9 @@ let persistedLinks = {};
 try {
   if (fs.existsSync(PERSISTED_LINKS_PATH)) {
     const raw = fs.readFileSync(PERSISTED_LINKS_PATH, "utf-8");
-    persistedLinks = JSON.parse(raw || "{}");
+    // strip BOM if present and safely parse
+    const cleaned = (raw || "{}").replace(/^\uFEFF/, "");
+    persistedLinks = JSON.parse(cleaned || "{}");
     // preencher PRECREATED_LINKS com valores persistidos caso ENV não tenha sido setada
     PRECREATED_LINKS.experience =
       PRECREATED_LINKS.experience || persistedLinks.experience || null;
@@ -151,6 +153,129 @@ async function persistPaymentLink(planId, paymentLinkId) {
 
 fastify.get("/health", async () => ({ status: "ok" }));
 
+// Helper: load mapping file (paymentlinks.json) safely
+function loadPaymentLinkMapping() {
+  try {
+    const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+    if (!fs.existsSync(mappingPath)) return {};
+    const raw = fs.readFileSync(mappingPath, "utf8") || "{}";
+    const cleaned = String(raw).replace(/^\uFEFF/, "");
+    return JSON.parse(cleaned || "{}");
+  } catch (e) {
+    fastify.log.warn({ err: e }, "failed to load payment link mapping");
+    return {};
+  }
+}
+
+// Helper: persist meta event locally for review instead of sending to Meta
+async function persistMetaEvent(event) {
+  try {
+    const outPath = path.resolve(__dirname, "meta_events.json");
+    let arr = [];
+    if (fs.existsSync(outPath)) {
+      try {
+        arr = JSON.parse(fs.readFileSync(outPath, "utf8") || "[]");
+      } catch (e) {
+        arr = [];
+      }
+    }
+    arr.push(event);
+    await fs.promises.writeFile(
+      outPath,
+      JSON.stringify(arr.slice(-1000), null, 2),
+      "utf8",
+    );
+  } catch (e) {
+    fastify.log.warn({ err: e }, "failed to persist meta event");
+  }
+}
+
+// Send event to Meta Conversions API (only if PIXEL_ID and ACCESS_TOKEN set)
+async function sendToMetaConversionsAPI(metaEvent) {
+  const pixelId = process.env.META_PIXEL_ID;
+  const accessToken = process.env.META_ACCESS_TOKEN;
+  const apiVersion = process.env.META_API_VERSION || "v17.0";
+  if (!pixelId || !accessToken) {
+    fastify.log.info(
+      "META_PIXEL_ID or META_ACCESS_TOKEN not set — skipping send to Meta",
+    );
+    return { ok: false, reason: "missing_credentials" };
+  }
+
+  // Build payload according to Meta Conversions API
+  const payload = {
+    data: [
+      {
+        event_name: metaEvent.event_name || "Purchase",
+        event_time: metaEvent.event_time || Math.floor(Date.now() / 1000),
+        event_source_url:
+          metaEvent.event_source_url || metaEvent.raw_webhook?.source || null,
+        action_source: metaEvent.action_source || "website",
+        event_id: metaEvent.event_id,
+        user_data: {},
+        custom_data: metaEvent.custom_data || {},
+      },
+    ],
+  };
+
+  // user_data: include fbp/fbc/raw PII if present (hash emails/phones)
+  const ud = {};
+  if (metaEvent.user_data) {
+    if (metaEvent.user_data.fbp) ud.fbp = String(metaEvent.user_data.fbp);
+    if (metaEvent.user_data.fbc) ud.fbc = String(metaEvent.user_data.fbc);
+    if (metaEvent.user_data.client_ip_address)
+      ud.client_ip_address = metaEvent.user_data.client_ip_address;
+    if (metaEvent.user_data.client_user_agent)
+      ud.client_user_agent = metaEvent.user_data.client_user_agent;
+    // If email/phone present, hash using SHA256 lowercase trim
+    const cryptoHash = (v) => {
+      try {
+        return crypto
+          .createHash("sha256")
+          .update(String(v).trim().toLowerCase())
+          .digest("hex");
+      } catch (e) {
+        return null;
+      }
+    };
+    if (metaEvent.user_data.email)
+      ud.em = cryptoHash(metaEvent.user_data.email);
+    if (metaEvent.user_data.phone)
+      ud.ph = cryptoHash(metaEvent.user_data.phone);
+  }
+
+  // attach user_data if not empty
+  if (Object.keys(ud).length) payload.data[0].user_data = ud;
+
+  const url = `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${accessToken}`;
+
+  // send with simple retry logic
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok) {
+        fastify.log.info({ res: json }, "meta conversions api sent");
+        return { ok: true, response: json };
+      }
+      fastify.log.warn(
+        { status: res.status, body: json },
+        `meta api responded non-OK (attempt ${attempt})`,
+      );
+    } catch (err) {
+      fastify.log.warn({ err }, `meta api send failed (attempt ${attempt})`);
+    }
+    // wait before retrying
+    await new Promise((r) => setTimeout(r, attempt * 500));
+  }
+
+  return { ok: false, reason: "failed_after_retries" };
+}
+
 // GET /api/plans — retorna lista de planos (source of truth centralizado)
 fastify.get("/api/plans", async () => {
   const out = Object.values(PLANS).map((p) => ({
@@ -173,6 +298,7 @@ fastify.get("/api/plans", async () => {
 // POST /api/checkout — Phase 2: cria / reusa Payment Link via Pagar.me
 fastify.post("/api/checkout", async (request, reply) => {
   const { planId } = request.body || {};
+  const tracking = request.body?.tracking || null;
   if (!planId) {
     return reply.status(400).send({ error: "planId is required" });
   }
@@ -208,6 +334,43 @@ fastify.post("/api/checkout", async (request, reply) => {
         if (checkRes.ok) {
           const checkJson = await checkRes.json();
           if (checkJson.status === "active") {
+            // persist mapping for env link when tracking provided
+            try {
+              if (tracking) {
+                const mappingPath = path.resolve(
+                  __dirname,
+                  "paymentlinks.json",
+                );
+                let map = {};
+                if (fs.existsSync(mappingPath)) {
+                  try {
+                    map = JSON.parse(
+                      fs.readFileSync(mappingPath, "utf8") || "{}",
+                    );
+                  } catch (e) {
+                    map = {};
+                  }
+                }
+                const id = envLinkRaw;
+                map[id] = {
+                  payment_link_id: id,
+                  url,
+                  tracking: tracking || null,
+                  ts: new Date().toISOString(),
+                };
+                fs.writeFileSync(
+                  mappingPath,
+                  JSON.stringify(map, null, 2),
+                  "utf8",
+                );
+              }
+            } catch (err) {
+              request.log.warn(
+                { err },
+                "failed to persist env paymentlink mapping",
+              );
+            }
+
             return reply.send({
               ok: true,
               url,
@@ -231,6 +394,30 @@ fastify.post("/api/checkout", async (request, reply) => {
       }
     } else {
       // sem chave da API, retornamos o link conforme informado no ENV
+      // persist mapping for env link when tracking provided
+      try {
+        if (tracking) {
+          const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+          let map = {};
+          if (fs.existsSync(mappingPath)) {
+            try {
+              map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
+            } catch (e) {
+              map = {};
+            }
+          }
+          map[envLinkRaw] = {
+            payment_link_id: envLinkRaw,
+            url,
+            tracking: tracking || null,
+            ts: new Date().toISOString(),
+          };
+          fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+        }
+      } catch (err) {
+        request.log.warn({ err }, "failed to persist env paymentlink mapping");
+      }
+
       return reply.send({
         ok: true,
         url,
@@ -423,6 +610,31 @@ fastify.post("/api/checkout", async (request, reply) => {
         // grava em server/paymentlinks.json para reutilização futura
         await persistPaymentLink(planId, createdId);
       }
+
+      // also persist mapping createdId -> tracking for correlation with webhooks
+      try {
+        if (createdId && tracking) {
+          const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+          let map = {};
+          if (fs.existsSync(mappingPath)) {
+            try {
+              map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
+            } catch (e) {
+              map = {};
+            }
+          }
+          map[createdId] = {
+            order_code: payload.order_code,
+            payment_link_id: createdId,
+            url,
+            tracking: tracking || null,
+            ts: new Date().toISOString(),
+          };
+          fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+        }
+      } catch (err) {
+        request.log.warn({ err }, "failed to persist paymentlink mapping");
+      }
     } catch (err) {
       request.log.warn({ err }, "unable to persist created payment link");
     }
@@ -528,6 +740,142 @@ fastify.post("/api/webhook/pagarme", async (request, reply) => {
       { body: request.body },
       "important event received (consider fulfill/notify)",
     );
+    // Attempt to correlate webhook to tracking data saved earlier
+    try {
+      const body = request.body || {};
+      // heuristics to find payment link id / order code in webhook payload
+      function findKey(obj) {
+        if (!obj || typeof obj !== "object") return null;
+        if (obj.payment_link_id) return obj.payment_link_id;
+        if (obj.payment_link) return obj.payment_link;
+        if (obj.order_code) return obj.order_code;
+        if (obj.id && String(obj.id).startsWith("pl_")) return obj.id;
+        // dive into common containers
+        const candidates = [
+          "data",
+          "checkout",
+          "order",
+          "payment_link",
+          "payment_link_data",
+          "attributes",
+          "object",
+        ];
+        for (const k of candidates) {
+          if (obj[k]) {
+            const res = findKey(obj[k]);
+            if (res) return res;
+          }
+        }
+        // scan all keys shallow for payment link-looking values
+        for (const v of Object.values(obj)) {
+          if (typeof v === "string" && v.startsWith("pl_")) return v;
+        }
+        return null;
+      }
+
+      const key =
+        findKey(body) ||
+        findKey(body?.data) ||
+        findKey(body?.data?.object) ||
+        null;
+      const mapping = loadPaymentLinkMapping();
+      let match = null;
+      if (key && mapping[key]) match = mapping[key];
+      // also try to match by order_code value inside mapping objects
+      if (!match && body && mapping) {
+        const orderCode =
+          body.order_code ||
+          body.data?.order_code ||
+          body?.data?.object?.order_code;
+        if (orderCode) {
+          for (const [k, v] of Object.entries(mapping)) {
+            if (v && v.order_code === orderCode) {
+              match = v;
+              break;
+            }
+          }
+        }
+      }
+
+      if (match) {
+        // build a minimal Conversions API-like payload and persist locally
+        const tracking = match.tracking || {};
+        const eventTime = Math.floor(Date.now() / 1000);
+        const eventId =
+          body.id ||
+          body?.data?.id ||
+          match.order_code ||
+          `pagarme_${event}_${eventTime}`;
+
+        // try to extract amount from webhook body
+        function extractAmount(obj) {
+          if (!obj || typeof obj !== "object") return null;
+          const numericKeys = [
+            "amount",
+            "value",
+            "total",
+            "unit_price",
+            "unit_amount",
+            "gross_amount",
+            "paid_amount",
+          ];
+          for (const k of numericKeys) {
+            if (obj[k] && typeof obj[k] === "number")
+              return obj[k] / 100 || obj[k];
+            if (obj[k] && typeof obj[k] === "string" && !isNaN(Number(obj[k])))
+              return Number(obj[k]);
+          }
+          for (const v of Object.values(obj)) {
+            const found = extractAmount(v);
+            if (found) return found;
+          }
+          return null;
+        }
+
+        const amount = extractAmount(body) || null;
+
+        const metaEvent = {
+          received_at: new Date().toISOString(),
+          source_event: event,
+          event_name:
+            event === "order.paid" || event === "charge.paid"
+              ? "Purchase"
+              : "Other",
+          event_time: eventTime,
+          event_id: eventId,
+          action_source: "website",
+          user_data: {
+            fbp: tracking.fbp || null,
+            fbc: tracking.fbc || null,
+            lead_id: tracking.leadId || null,
+          },
+          custom_data: {
+            currency: "BRL",
+            value: amount,
+            payment_link_id: match.payment_link_id || null,
+            order_code: match.order_code || null,
+          },
+          raw_webhook: body,
+        };
+
+        await persistMetaEvent(metaEvent);
+        request.log.info(
+          { metaEvent },
+          "prepared meta event and persisted locally",
+        );
+        // attempt to send to Meta Conversions API (env gated)
+        try {
+          const sendResult = await sendToMetaConversionsAPI(metaEvent);
+          request.log.info({ sendResult }, "sendToMetaConversionsAPI result");
+        } catch (e) {
+          request.log.warn({ err: e }, "error sending to Meta Conversions API");
+        }
+      } else {
+        request.log.info({ event }, "no mapping found for this webhook");
+      }
+    } catch (e) {
+      request.log.warn({ err: e }, "failed to correlate webhook to tracking");
+    }
   }
 
   return reply.code(200).send({ ok: true });

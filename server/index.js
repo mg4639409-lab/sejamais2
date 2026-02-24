@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
 const fastify = require("fastify")({ logger: true });
@@ -101,6 +102,7 @@ fastify.get("/api/plans", async () => {
 // POST /api/checkout — Phase 2: cria / reusa Payment Link via Pagar.me
 fastify.post("/api/checkout", async (request, reply) => {
   const { planId } = request.body || {};
+  const tracking = request.body?.tracking || null;
   if (!planId) {
     return reply.status(400).send({ error: "planId is required" });
   }
@@ -172,6 +174,19 @@ fastify.post("/api/checkout", async (request, reply) => {
       layout_settings: { hide_shipping_selector: true },
     };
 
+    // attach minimal metadata for correlation (Pagar.me may ignore unknown fields)
+    if (tracking) {
+      try {
+        const meta = {};
+        if (tracking.leadId) meta.lead_id = String(tracking.leadId);
+        if (tracking.fbclid) meta.fbclid = String(tracking.fbclid);
+        if (tracking.fbp) meta.fbp = String(tracking.fbp);
+        if (Object.keys(meta).length) payload.metadata = meta;
+      } catch (e) {
+        // ignore
+      }
+    }
+
     const createRes = await fetch(`${apiBase}/paymentlinks`, {
       method: "POST",
       headers: {
@@ -205,6 +220,35 @@ fastify.post("/api/checkout", async (request, reply) => {
       (createJson?.data &&
         (createJson.data.url || createJson.data.short_url)) ||
       plan.payment_link;
+
+    // persist local mapping: order_code or created id -> tracking
+    try {
+      const createdId =
+        createJson.id ||
+        createJson.data?.id ||
+        createJson.payment_link_id ||
+        createJson.data?.payment_link_id ||
+        payload.order_code;
+      const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+      let map = {};
+      if (fs.existsSync(mappingPath)) {
+        try {
+          map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
+        } catch (e) {
+          map = {};
+        }
+      }
+      map[createdId] = {
+        order_code: payload.order_code,
+        payment_link_id: createdId,
+        url,
+        tracking: tracking || null,
+        ts: new Date().toISOString(),
+      };
+      fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+    } catch (err) {
+      request.log.warn({ err }, "failed to persist paymentlink mapping");
+    }
 
     return reply.send({ ok: true, url, raw: createJson });
   } catch (err) {

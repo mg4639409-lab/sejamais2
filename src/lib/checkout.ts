@@ -9,6 +9,7 @@ export type CheckoutResponse = {
 
 export async function createCheckout(
   planId: string,
+  tracking?: Record<string, any>,
 ): Promise<CheckoutResponse> {
   try {
     // Dev -> chama servidor local na porta 4000, Prod -> rota relativa
@@ -16,10 +17,11 @@ export async function createCheckout(
       typeof window !== "undefined" && window.location.hostname === "localhost"
         ? "http://localhost:4000"
         : "";
+    const body = tracking ? { planId, tracking } : { planId };
     const res = await fetch(`${base}/api/checkout`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify(body),
     });
 
     const json = await res.json().catch(() => null);
