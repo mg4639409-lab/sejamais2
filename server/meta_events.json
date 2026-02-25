@@ -54,5 +54,36 @@
         "amount": 39999
       }
     }
+  },
+  {
+    "received_at": "2026-02-25T16:48:49.331Z",
+    "source_event": "order.paid",
+    "event_name": "Purchase",
+    "event_time": 1772038129,
+    "event_id": "pl_pg04ke1QGO2R8XDLIou18PK7DqJ6M3wj",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": "5f753177-05ef-4720-89d8-d636f821a049"
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": null,
+      "payment_link_id": "pl_pg04ke1QGO2R8XDLIou18PK7DqJ6M3wj",
+      "order_code": null
+    },
+    "raw_webhook": {
+      "event": "order.paid",
+      "payment_link_id": "pl_pg04ke1QGO2R8XDLIou18PK7DqJ6M3wj",
+      "order_code": null,
+      "data": {
+        "id": "pl_pg04ke1QGO2R8XDLIou18PK7DqJ6M3wj",
+        "object": {
+          "order_code": null
+        }
+      },
+      "amount": null
+    }
   }
 ]

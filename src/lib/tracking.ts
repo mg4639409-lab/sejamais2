@@ -60,6 +60,7 @@ export function getTracking() {
   // common FB cookie names
   const fbp = getCookie("_fbp") || null;
   const fbc = getCookie("_fbc") || null;
+  const eventId = getCookie("sejamais_event") || null;
   // collect some utm params if present
   let utm = {} as Record<string, string>;
   try {
@@ -79,10 +80,30 @@ export function getTracking() {
   return {
     leadId,
     fbclid,
+    eventId,
     fbp,
     fbc,
     utm: Object.keys(utm).length ? utm : undefined,
   };
+}
+
+// Create a new event id for a purchase attempt and persist briefly (1 day)
+export function createEventId() {
+  const id = uidv4();
+  setCookie("sejamais_event", id, 1);
+  return id;
+}
+
+export function getEventId() {
+  return getCookie("sejamais_event") || null;
+}
+
+export function clearEventId() {
+  // set cookie expiry to past
+  try {
+    document.cookie =
+      "sejamais_event=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;";
+  } catch (e) {}
 }
 
 export default {

@@ -140,7 +140,8 @@ const OfertasSection = () => {
     if (!planId) return;
     setLoadingPlan(planId);
     try {
-      const tracking = trackingLib.getTracking();
+      // get tracking info for checkout
+      const tracking = trackingLib.getTracking() || {};
       const res = await createCheckout(planId, tracking ?? undefined);
       if (res?.ok && res.url) {
         toast({
