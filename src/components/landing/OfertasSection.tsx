@@ -136,39 +136,66 @@ const OfertasSection = () => {
     }
   }, []);
 
-  const handleCheckout = useCallback(async (planId: string | null) => {
-    if (!planId) return;
-    setLoadingPlan(planId);
-    try {
-      // get tracking info for checkout
-      const tracking = trackingLib.getTracking() || {};
-      const res = await createCheckout(planId, tracking ?? undefined);
-      if (res?.ok && res.url) {
-        toast({
-          title: "Envio",
-          description: `Envio por ${res.shippingCarrier ?? "Sedex"} — Frete Grátis de 3 a 7 dias!`,
-        });
-        window.open(res.url, "_blank", "noopener");
-      } else if (res?.url) {
-        // fallback link available
-        toast({
-          title: "Checkout",
-          description: `Abrindo link de pagamento — envio por ${res.shippingCarrier ?? "Sedex — Frete Grátis de 3 a 7 dias"}`,
-        });
-        window.open(res.url, "_blank", "noopener");
-      } else {
-        toast({
-          title: "Erro",
-          description: res?.message || "Não foi possível iniciar o checkout.",
-        });
+  const handleCheckout = useCallback(
+    async (planId: string | null) => {
+      if (!planId) return;
+      const plan = plans.find((p) => p.id === planId);
+      const amount = plan?.amount || null;
+      setLoadingPlan(planId);
+      try {
+        // get tracking info for checkout
+        const tracking = trackingLib.getTracking() || {};
+        // create a fresh event id for deduplicação
+        const eventId = trackingLib.createEventId?.();
+        if (eventId) tracking.eventId = eventId;
+        if (amount) tracking.amount = amount;
+
+        // Dispara InitiateCheckout no pixel antes de redirecionar
+        if (typeof window !== "undefined" && typeof window.fbq === "function") {
+          try {
+            const customData: Record<string, any> = { currency: "BRL" };
+            if (amount) {
+              // amounts are em centavos; converte para BRL
+              const value = amount > 1000 ? amount / 100 : amount;
+              customData.value = value;
+            }
+            window.fbq("track", "InitiateCheckout", customData, {
+              eventID: eventId,
+            });
+          } catch (e) {
+            // ignora erros do pixel
+          }
+        }
+
+        const res = await createCheckout(planId, tracking ?? undefined);
+        if (res?.ok && res.url) {
+          toast({
+            title: "Envio",
+            description: `Envio por ${res.shippingCarrier ?? "Sedex"} — Frete Grátis de 3 a 7 dias!`,
+          });
+          window.open(res.url, "_blank", "noopener");
+        } else if (res?.url) {
+          // fallback link available
+          toast({
+            title: "Checkout",
+            description: `Abrindo link de pagamento — envio por ${res.shippingCarrier ?? "Sedex — Frete Grátis de 3 a 7 dias"}`,
+          });
+          window.open(res.url, "_blank", "noopener");
+        } else {
+          toast({
+            title: "Erro",
+            description: res?.message || "Não foi possível iniciar o checkout.",
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        toast({ title: "Erro", description: "Erro ao iniciar checkout." });
+      } finally {
+        setLoadingPlan(null);
       }
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Erro", description: "Erro ao iniciar checkout." });
-    } finally {
-      setLoadingPlan(null);
-    }
-  }, []);
+    },
+    [plans],
+  );
 
   const openConfirm = (planId: string) => {
     setSelectedPlan(planId);

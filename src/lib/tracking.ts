@@ -110,4 +110,7 @@ export default {
   ensureLeadId,
   saveFbclidIfPresent,
   getTracking,
+  createEventId,
+  getEventId,
+  clearEventId,
 };

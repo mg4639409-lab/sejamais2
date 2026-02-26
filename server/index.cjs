@@ -393,6 +393,8 @@ fastify.post("/api/checkout", async (request, reply) => {
                   payment_link_id: id,
                   url,
                   tracking: tracking || null,
+                  amount: plan.amount || null,
+                  order_code: null,
                   ts: new Date().toISOString(),
                 };
                 fs.writeFileSync(
@@ -443,17 +445,19 @@ fastify.post("/api/checkout", async (request, reply) => {
               map = {};
             }
           }
-          map[envLinkRaw] = {
-            payment_link_id: envLinkRaw,
-            url,
-            tracking: tracking || null,
-            ts: new Date().toISOString(),
-          };
-          fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
-        }
-      } catch (err) {
-        request.log.warn({ err }, "failed to persist env paymentlink mapping");
-      }
+           map[envLinkRaw] = {
+             payment_link_id: envLinkRaw,
+             url,
+             tracking: tracking || null,
+             amount: plan.amount || null,
+             order_code: null,
+             ts: new Date().toISOString(),
+           };
+           fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+         }
+       } catch (err) {
+         request.log.warn({ err }, "failed to persist env paymentlink mapping");
+       }
 
       return reply.send({
         ok: true,
@@ -490,20 +494,48 @@ fastify.post("/api/checkout", async (request, reply) => {
       },
     );
 
-    if (listRes.ok) {
-      const listJson = await listRes.json();
-      const maybeArray = Array.isArray(listJson)
-        ? listJson
-        : listJson?.data || [];
-      if (maybeArray.length > 0 && maybeArray[0].url) {
-        return reply.send({
-          ok: true,
-          url: maybeArray[0].url,
-          reused: true,
-          shippingCarrier: "Sedex",
-        });
+      if (listRes.ok) {
+        const listJson = await listRes.json();
+        const maybeArray = Array.isArray(listJson)
+          ? listJson
+          : listJson?.data || [];
+        if (maybeArray.length > 0 && maybeArray[0].url) {
+          // persist mapping for reuse when tracking is provided
+          try {
+            if (tracking) {
+              const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+              let map = {};
+              if (fs.existsSync(mappingPath)) {
+                try {
+                  map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
+                } catch (e) {
+                  map = {};
+                }
+              }
+              const id =
+                maybeArray[0].id || maybeArray[0].payment_link_id || planId;
+              map[id] = {
+                order_code: null,
+                payment_link_id: id,
+                url: maybeArray[0].url,
+                tracking: tracking || null,
+                amount: plan.amount || null,
+                ts: new Date().toISOString(),
+              };
+              fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+            }
+          } catch (err) {
+            request.log.warn({ err }, "failed to persist reused paymentlink mapping");
+          }
+
+          return reply.send({
+            ok: true,
+            url: maybeArray[0].url,
+            reused: true,
+            shippingCarrier: "Sedex",
+          });
+        }
       }
-    }
 
     // 2) criar novo Payment Link
     const payload = {
@@ -665,6 +697,7 @@ fastify.post("/api/checkout", async (request, reply) => {
             payment_link_id: createdId,
             url,
             tracking: tracking || null,
+            amount: plan.amount || null,
             ts: new Date().toISOString(),
           };
           fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
@@ -772,12 +805,20 @@ fastify.post("/api/webhook/pagarme", async (request, reply) => {
   }
 
   // Basic handling — log important events; user can extend to notify/email/etc.
-  if (["checkout.closed", "order.paid", "charge.paid"].includes(event)) {
+  const trackedEvents = [
+    "checkout.created",
+    "order.created",
+    "charge.created",
+    "order.paid",
+    "charge.paid",
+    "checkout.closed",
+  ];
+  if (trackedEvents.includes(event)) {
     request.log.info(
       { body: request.body },
       "important event received (consider fulfill/notify)",
     );
-    // Attempt to correlate webhook to tracking data saved earlier
+      // Attempt to correlate webhook to tracking data saved earlier
     try {
       const body = request.body || {};
       // heuristics to find payment link id / order code in webhook payload
@@ -871,15 +912,28 @@ fastify.post("/api/webhook/pagarme", async (request, reply) => {
           return null;
         }
 
-        const amount = extractAmount(body) || null;
+        const amountRaw = extractAmount(body) || match.amount || null;
+        const amount =
+          typeof amountRaw === "number" && amountRaw > 1000
+            ? amountRaw / 100
+            : amountRaw;
+
+        // map pagar.me events to Meta pixel names
+        const metaEventNameMap = {
+          "checkout.created": "InitiateCheckout",
+          "order.created": "AddPaymentInfo",
+          "charge.created": "Purchase",
+          "order.paid": "Purchase",
+          "charge.paid": "Purchase",
+          "checkout.closed": "Purchase",
+        };
+        const metaEventName =
+          metaEventNameMap[event] || metaEventNameMap["order.paid"];
 
         const metaEvent = {
           received_at: new Date().toISOString(),
           source_event: event,
-          event_name:
-            event === "order.paid" || event === "charge.paid"
-              ? "Purchase"
-              : "Other",
+          event_name: metaEventName,
           event_time: eventTime,
           event_id: eventId,
           action_source: "website",
@@ -893,6 +947,7 @@ fastify.post("/api/webhook/pagarme", async (request, reply) => {
             value: amount,
             payment_link_id: match.payment_link_id || null,
             order_code: match.order_code || null,
+            status: event.replace(/\./g, "_"),
           },
           raw_webhook: body,
         };
