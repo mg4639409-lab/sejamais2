@@ -22,7 +22,7 @@ const PLANS = {
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Sedex",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Garantia de 90 dias",
       "Acesso ao grupo VIP",
     ],
@@ -44,7 +44,7 @@ const PLANS = {
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Sedex",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Garantia 90 dias",
     ],
     featured: false,
@@ -63,7 +63,7 @@ const PLANS = {
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Sedex",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Garantia 90 dias",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
@@ -77,6 +77,65 @@ const PLANS = {
       : "https://payment-link-v3.pagar.me/pl_LXARPNW4kJqoB2cm8FY4oM6jYEpBgO75",
   },
 };
+
+// helper to validate environment links at startup. if the price encoded in a
+// payment link doesn't match the plan amount, try to automatically swap the
+// two links so the app continues to work even when the vars are inverted.
+async function verifyEnvLinks() {
+  const pagarmeKey = process.env.PAGARME_API_KEY;
+  if (!pagarmeKey) return;
+  const apiBase = "https://api.pagar.me/core/v5";
+  const authHeader =
+    "Basic " + Buffer.from(`${pagarmeKey}:`).toString("base64");
+
+  for (const planId of Object.keys(PLANS)) {
+    const rawLink = PRECREATED_LINKS[planId];
+    if (!rawLink) continue;
+    let linkId = rawLink;
+    if (linkId.startsWith("http")) {
+      const m = linkId.match(/pl_[A-Za-z0-9]+/);
+      if (m) linkId = m[0];
+    }
+    try {
+      const res = await fetch(
+        `${apiBase}/paymentlinks/${encodeURIComponent(linkId)}`,
+        { headers: { Authorization: authHeader, Accept: "application/json" } },
+      );
+      if (!res.ok) continue;
+      const json = await res.json();
+      const amount =
+        json.amount ||
+        (json.order && json.order.items && json.order.items[0]?.unit_price) ||
+        null;
+      if (amount && PLANS[planId] && amount !== PLANS[planId].amount) {
+        const other = Object.values(PLANS).find((p) => p.amount === amount);
+        if (other) {
+          fastify.log.warn(
+            { planId, other: other.id, envLink: rawLink },
+            "env payment link amount mismatches expected plan; swapping",
+          );
+          const tmp = PRECREATED_LINKS[planId];
+          PRECREATED_LINKS[planId] = PRECREATED_LINKS[other.id];
+          PRECREATED_LINKS[other.id] = tmp;
+        } else {
+          fastify.log.warn(
+            { planId, amount, envLink: rawLink },
+            "env payment link amount does not match any known plan",
+          );
+        }
+      }
+    } catch (err) {
+      fastify.log.warn(
+        { err, planId, link: rawLink },
+        "error checking env link",
+      );
+    }
+  }
+}
+
+verifyEnvLinks().catch((err) => {
+  fastify.log.warn({ err }, "could not verify env payment links");
+});
 
 fastify.get("/health", async () => ({ status: "ok" }));
 
@@ -99,10 +158,51 @@ fastify.get("/api/plans", async () => {
   return { ok: true, plans: out };
 });
 
+// helper that returns the appropriate env payment link for a plan
+function getEnvLink(planId) {
+  // ignore env links for problematic plans to force fresh link generation
+  if (planId === "last_option" || planId === "transformation") {
+    fastify.log.warn(
+      { planId },
+      "ignoring env link for plan, will create/ reuse dynamically",
+    );
+    return null;
+  }
+  let link = PRECREATED_LINKS[planId];
+  // user override to invert mapping
+  if (process.env.INVERT_LINKS === "true") {
+    const other = planId === "last_option" ? "transformation" : "last_option";
+    const candidate = PRECREATED_LINKS[other];
+    if (candidate) {
+      fastify.log.warn(
+        { planId, candidate, reason: "invert_flag" },
+        "INVERT_LINKS set – swapping link",
+      );
+      link = candidate;
+    }
+  }
+  // pattern-based detection
+  const patterns = { last_option: "WeM5d2G7", transformation: "LXARPNW" };
+  const expected = patterns[planId];
+  if (expected && link && !link.includes(expected)) {
+    const other = planId === "last_option" ? "transformation" : "last_option";
+    const candidate = PRECREATED_LINKS[other];
+    if (candidate && candidate.includes(expected)) {
+      fastify.log.warn(
+        { planId, link, swappedWith: candidate, reason: "pattern_mismatch" },
+        "link pattern did not match expected substring; swapping",
+      );
+      link = candidate;
+    }
+  }
+  return link;
+}
+
 // POST /api/checkout — Phase 2: cria / reusa Payment Link via Pagar.me
 fastify.post("/api/checkout", async (request, reply) => {
   const { planId } = request.body || {};
   const tracking = request.body?.tracking || null;
+  fastify.log.info({ planId, body: request.body }, "checkout request received");
   if (!planId) {
     return reply.status(400).send({ error: "planId is required" });
   }
@@ -167,7 +267,7 @@ fastify.post("/api/checkout", async (request, reply) => {
         ],
         shipping: {
           amount: 0,
-          description: "Frete Grátis — Sedex",
+          description: "Frete Grátis — Envio Grátis para todo Brasil",
           type: "Standard",
         },
       },

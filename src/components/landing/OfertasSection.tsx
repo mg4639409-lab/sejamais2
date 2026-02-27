@@ -57,9 +57,10 @@ const legacyPlans = [
     badge: "1ª compra",
   },
   {
-    id: "transformation",
+    // 2‑unit option (last_option on server)
+    id: "last_option",
     hrefButton:
-      "https://payment-link-v3.pagar.me/pl_WeM5d2G7bQrk4Y5ImQir8vYXxEoVKg3P",
+      "https://payment-link-v3.pagar.me/pl_okertjn0DjM2v1mWp31SW3hwnvfubv56GHFSVD7r",
     name: "2 unidades",
     subtitle: "Maior economia",
     originalPrice: "R$ 999,98",
@@ -71,14 +72,15 @@ const legacyPlans = [
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
     ],
-    featured: true,
+    featured: false,
     cta: "Comprar 2 unidades",
-    badge: "Mais Vendido",
+    // no badge on server for last_option
   },
   {
-    id: "last_option",
+    // 3‑unit option (transformation on server)
+    id: "transformation",
     hrefButton:
-      "https://payment-link-v3.pagar.me/pl_WeM5d2G7bQrk4Y5ImQir8vYXxEoVKg3P",
+      "https://payment-link-v3.pagar.me/pl_zygDjM2v1mWp31SW3hw74dPbZwAJVEle",
     name: "3 unidades",
     subtitle: "Melhor custo",
     originalPrice: "R$ 1.499,97",
@@ -88,8 +90,9 @@ const legacyPlans = [
       "3 potes EU+ (90 porções)",
       "Frete Grátis — Envio Grátis para todo Brasil",
     ],
-    featured: false,
+    featured: true,
     cta: "Comprar 3 unidades",
+    badge: "Mais Vendido",
   },
 ];
 
@@ -138,6 +141,10 @@ const OfertasSection = () => {
       if (!planId) return;
       const plan = plans.find((p) => p.id === planId);
       const amount = plan?.amount || null;
+
+      // DEBUG: log plan being checked out to help diagnose mismatches
+      console.debug("handleCheckout planId", planId, "plan", plan);
+
       setLoadingPlan(planId);
       try {
         // get tracking info for checkout
@@ -400,7 +407,7 @@ const OfertasSection = () => {
                 <br /> <br /> Você será redirecionado para o checkout seguro do
                 Pagar.me para concluir o pagamento.
               </DialogDescription>
-              <DialogDescription className="flex items-center justify-between p-10">
+              <DialogDescription className="flex flex-wrap items-center justify-between p-10">
                 <div className="flex flex-col">
                   <h3 className="text-primary font-extrabold text-md">
                     Envio Imediato

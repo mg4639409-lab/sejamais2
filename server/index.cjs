@@ -38,7 +38,7 @@ const PLANS = {
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Sedex",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Garantia de 90 dias",
       "Acesso ao grupo VIP",
     ],
@@ -59,7 +59,7 @@ const PLANS = {
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Sedex",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Garantia 90 dias",
     ],
     featured: false,
@@ -78,7 +78,7 @@ const PLANS = {
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Sedex",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Garantia 90 dias",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
@@ -92,6 +92,24 @@ const PLANS = {
       : "https://payment-link-v3.pagar.me/pl_zygDjM2v1mWp31SW3hw74dPbZwAJVEle",
   },
 };
+
+// startup sanity check for env vars – catches swapped paymentlink IDs
+(function sanityCheckEnv() {
+  const lastEnv = process.env.PAYMENTLINK_LAST_OPTION || "";
+  const transEnv = process.env.PAYMENTLINK_TRANSFORMATION || "";
+  if (lastEnv.includes("LXARPNW")) {
+    console.warn(
+      "[ENV WARN] PAYMENTLINK_LAST_OPTION looks like the transformation link (3-unit).\n" +
+        "Please make sure the environment variables are not swapped.",
+    );
+  }
+  if (transEnv.includes("WeM5d2G7")) {
+    console.warn(
+      "[ENV WARN] PAYMENTLINK_TRANSFORMATION looks like the last_option link (2-unit).\n" +
+        "Please make sure the environment variables are not swapped.",
+    );
+  }
+})();
 
 const fs = require("fs");
 const crypto = require("crypto");
@@ -126,11 +144,73 @@ try {
       PRECREATED_LINKS.experience || persistedLinks.experience || null;
     PRECREATED_LINKS.transformation =
       PRECREATED_LINKS.transformation || persistedLinks.transformation || null;
+    PRECREATED_LINKS.last_option =
+      PRECREATED_LINKS.last_option || persistedLinks.last_option || null;
   }
 } catch (e) {
   // não interromper a inicialização por erro de leitura do arquivo
   console.warn("Could not read persisted payment links file", e);
 }
+
+// helper: ensure env links point to the expected plans; if not, swap them
+async function verifyEnvLinks() {
+  const pagarmeKey = process.env.PAGARME_API_KEY;
+  if (!pagarmeKey) return;
+  const apiBase = "https://api.pagar.me/core/v5";
+  const authHeader =
+    "Basic " + Buffer.from(`${pagarmeKey}:`).toString("base64");
+
+  for (const planId of Object.keys(PLANS)) {
+    const rawLink = PRECREATED_LINKS[planId];
+    if (!rawLink) continue;
+    let linkId = rawLink;
+    if (linkId.startsWith("http")) {
+      const m = linkId.match(/pl_[A-Za-z0-9]+/);
+      if (m) linkId = m[0];
+    }
+    try {
+      const res = await fetch(
+        `${apiBase}/paymentlinks/${encodeURIComponent(linkId)}`,
+        { headers: { Authorization: authHeader, Accept: "application/json" } },
+      );
+      if (!res.ok) continue;
+      const json = await res.json();
+      // amount may appear at top-level or inside order.items
+      const amount =
+        json.amount ||
+        (json.order && json.order.items && json.order.items[0]?.unit_price) ||
+        null;
+      if (amount && PLANS[planId] && amount !== PLANS[planId].amount) {
+        // find a plan whose amount matches
+        const other = Object.values(PLANS).find((p) => p.amount === amount);
+        if (other) {
+          fastify.log.warn(
+            { planId, other: other.id, envLink: rawLink },
+            "env payment link amount mismatches expected plan; swapping",
+          );
+          const tmp = PRECREATED_LINKS[planId];
+          PRECREATED_LINKS[planId] = PRECREATED_LINKS[other.id];
+          PRECREATED_LINKS[other.id] = tmp;
+        } else {
+          fastify.log.warn(
+            { planId, amount, envLink: rawLink },
+            "env payment link amount does not match any known plan",
+          );
+        }
+      }
+    } catch (err) {
+      fastify.log.warn(
+        { err, planId, link: rawLink },
+        "error checking env link",
+      );
+    }
+  }
+}
+
+// invoke check once at startup (async, not blocking)
+verifyEnvLinks().catch((err) => {
+  fastify.log.warn({ err }, "could not verify env payment links");
+});
 
 async function persistPaymentLink(planId, paymentLinkId) {
   try {
@@ -336,6 +416,7 @@ fastify.get("/api/paymentlink-lookup", async (request, reply) => {
 fastify.post("/api/checkout", async (request, reply) => {
   const { planId } = request.body || {};
   const tracking = request.body?.tracking || null;
+  fastify.log.info({ planId, body: request.body }, "checkout request received");
   if (!planId) {
     return reply.status(400).send({ error: "planId is required" });
   }
@@ -346,7 +427,47 @@ fastify.post("/api/checkout", async (request, reply) => {
   }
 
   // 1) Se houver link pré-criado via ENV, reutilizamos imediatamente (não criamos novo link)
-  const envLinkRaw = PRECREATED_LINKS[planId];
+  // choose env link but apply inversion logic if necessary (config flag or detected pattern mismatch)
+  function getEnvLink(planId) {
+    // avoid using pre-created links for the two options that keep opening wrong
+    if (planId === "last_option" || planId === "transformation") {
+      fastify.log.warn(
+        { planId },
+        "ignoring env link and falling back to dynamic creation",
+      );
+      return null;
+    }
+    let link = PRECREATED_LINKS[planId];
+    // explicit override flag
+    if (process.env.INVERT_LINKS === "true") {
+      const other = planId === "last_option" ? "transformation" : "last_option";
+      link = PRECREATED_LINKS[other] || link;
+      fastify.log.warn(
+        { planId, link, reason: "invert_flag" },
+        "using swapped link due to INVERT_LINKS",
+      );
+    }
+    // pattern-based auto swap: look for expected substring
+    const patterns = {
+      last_option: "WeM5d2G7",
+      transformation: "LXARPNW",
+    };
+    const expected = patterns[planId];
+    if (expected && link && !link.includes(expected)) {
+      const other = planId === "last_option" ? "transformation" : "last_option";
+      const candidate = PRECREATED_LINKS[other];
+      if (candidate && candidate.includes(expected)) {
+        fastify.log.warn(
+          { planId, link, swappedWith: candidate, reason: "pattern_mismatch" },
+          "detected env link pattern mismatch, swapping links",
+        );
+        link = candidate;
+      }
+    }
+    return link;
+  }
+
+  const envLinkRaw = getEnvLink(planId);
   if (envLinkRaw) {
     const url = envLinkRaw.startsWith("http")
       ? envLinkRaw
@@ -410,11 +531,15 @@ fastify.post("/api/checkout", async (request, reply) => {
               );
             }
 
+            fastify.log.info(
+              { planId, url, source: "env" },
+              "returning checkout url (env link)",
+            );
             return reply.send({
               ok: true,
               url,
               reused: true,
-              shippingCarrier: "Sedex",
+              shippingCarrier: "Envio Grátis para todo Brasil",
               source: "env",
             });
           }
@@ -445,25 +570,29 @@ fastify.post("/api/checkout", async (request, reply) => {
               map = {};
             }
           }
-           map[envLinkRaw] = {
-             payment_link_id: envLinkRaw,
-             url,
-             tracking: tracking || null,
-             amount: plan.amount || null,
-             order_code: null,
-             ts: new Date().toISOString(),
-           };
-           fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
-         }
-       } catch (err) {
-         request.log.warn({ err }, "failed to persist env paymentlink mapping");
-       }
+          map[envLinkRaw] = {
+            payment_link_id: envLinkRaw,
+            url,
+            tracking: tracking || null,
+            amount: plan.amount || null,
+            order_code: null,
+            ts: new Date().toISOString(),
+          };
+          fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+        }
+      } catch (err) {
+        request.log.warn({ err }, "failed to persist env paymentlink mapping");
+      }
 
+      fastify.log.info(
+        { planId, url, source: "env" },
+        "returning checkout url (env link, no API key)",
+      );
       return reply.send({
         ok: true,
         url,
         reused: true,
-        shippingCarrier: "Sedex",
+        shippingCarrier: "Envio Grátis para todo Brasil",
         source: "env",
       });
     }
@@ -494,48 +623,55 @@ fastify.post("/api/checkout", async (request, reply) => {
       },
     );
 
-      if (listRes.ok) {
-        const listJson = await listRes.json();
-        const maybeArray = Array.isArray(listJson)
-          ? listJson
-          : listJson?.data || [];
-        if (maybeArray.length > 0 && maybeArray[0].url) {
-          // persist mapping for reuse when tracking is provided
-          try {
-            if (tracking) {
-              const mappingPath = path.resolve(__dirname, "paymentlinks.json");
-              let map = {};
-              if (fs.existsSync(mappingPath)) {
-                try {
-                  map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
-                } catch (e) {
-                  map = {};
-                }
+    if (listRes.ok) {
+      const listJson = await listRes.json();
+      const maybeArray = Array.isArray(listJson)
+        ? listJson
+        : listJson?.data || [];
+      if (maybeArray.length > 0 && maybeArray[0].url) {
+        // persist mapping for reuse when tracking is provided
+        try {
+          if (tracking) {
+            const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+            let map = {};
+            if (fs.existsSync(mappingPath)) {
+              try {
+                map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
+              } catch (e) {
+                map = {};
               }
-              const id =
-                maybeArray[0].id || maybeArray[0].payment_link_id || planId;
-              map[id] = {
-                order_code: null,
-                payment_link_id: id,
-                url: maybeArray[0].url,
-                tracking: tracking || null,
-                amount: plan.amount || null,
-                ts: new Date().toISOString(),
-              };
-              fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
             }
-          } catch (err) {
-            request.log.warn({ err }, "failed to persist reused paymentlink mapping");
+            const id =
+              maybeArray[0].id || maybeArray[0].payment_link_id || planId;
+            map[id] = {
+              order_code: null,
+              payment_link_id: id,
+              url: maybeArray[0].url,
+              tracking: tracking || null,
+              amount: plan.amount || null,
+              ts: new Date().toISOString(),
+            };
+            fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
           }
-
-          return reply.send({
-            ok: true,
-            url: maybeArray[0].url,
-            reused: true,
-            shippingCarrier: "Sedex",
-          });
+        } catch (err) {
+          request.log.warn(
+            { err },
+            "failed to persist reused paymentlink mapping",
+          );
         }
+
+        fastify.log.info(
+          { planId, url: maybeArray[0].url, source: "reuse" },
+          "returning checkout url (reused link)",
+        );
+        return reply.send({
+          ok: true,
+          url: maybeArray[0].url,
+          reused: true,
+          shippingCarrier: "Envio Grátis para todo Brasil",
+        });
       }
+    }
 
     // 2) criar novo Payment Link
     const payload = {
@@ -564,9 +700,9 @@ fastify.post("/api/checkout", async (request, reply) => {
         items: [
           {
             // incluir transportadora no nome do item para que apareça no checkout
-            name: `${plan.name} — Envio: Sedex`,
+            name: `${plan.name} — Envio: Envio Grátis para todo Brasil`,
             // descrição usada pelo checkout do Pagar.me
-            description: `EU+ — suplemento rejuvenescedor — Frete Grátis (Envio via Sedex)`,
+            description: `EU+ — suplemento rejuvenescedor — Frete Grátis (Envio via Envio Grátis para todo Brasil)`,
             amount: plan.amount,
             default_quantity: 1,
             shipping_cost: 0,
@@ -608,7 +744,7 @@ fastify.post("/api/checkout", async (request, reply) => {
               {
                 id: plan.id,
                 // título curto exibido no checkout — acrescenta transportadora
-                title: `${plan.name} — Frete Grátis (Sedex)`,
+                title: `${plan.name} — Frete Grátis (Envio Grátis para todo Brasil)`,
                 unit_price: plan.amount,
                 quantity: 1,
                 tangible: true,
@@ -712,7 +848,7 @@ fastify.post("/api/checkout", async (request, reply) => {
     return reply.send({
       ok: true,
       url,
-      shippingCarrier: "Sedex",
+      shippingCarrier: "Envio Grátis para todo Brasil",
       raw: createJson,
     });
   } catch (err) {
@@ -818,7 +954,7 @@ fastify.post("/api/webhook/pagarme", async (request, reply) => {
       { body: request.body },
       "important event received (consider fulfill/notify)",
     );
-      // Attempt to correlate webhook to tracking data saved earlier
+    // Attempt to correlate webhook to tracking data saved earlier
     try {
       const body = request.body || {};
       // heuristics to find payment link id / order code in webhook payload
