@@ -37,7 +37,7 @@ const faqs = [
   {
     question: "A garantia é real? Como funciona?",
     answer:
-      "Sim, 100% real. Se em 90 dias você não perceber os benefícios prometidos, basta entrar em contato conosco que devolvemos integralmente o valor investido, sem perguntas ou burocracia.",
+      "Sim, 100% real. Conforme o direito do consumidor para compras online, você tem 7 dias após o recebimento para solicitar o cancelamento caso não esteja satisfeito. Dentro desse prazo, devolvemos 100% do seu investimento, de forma simples e sem burocracia.",
   },
   {
     question: "Grávidas e lactantes podem tomar?",
@@ -56,9 +56,9 @@ const FAQSection = () => {
   };
 
   return (
-    <section 
-      id="faq" 
-      className="section-padding bg-gradient-subtle" 
+    <section
+      id="faq"
+      className="section-padding bg-gradient-subtle"
       ref={ref}
       aria-labelledby="faq-heading"
     >
@@ -97,7 +97,11 @@ const FAQSection = () => {
         </header>
 
         {/* FAQ Accordion */}
-        <div className="max-w-3xl mx-auto" role="list" aria-label="Perguntas frequentes">
+        <div
+          className="max-w-3xl mx-auto"
+          role="list"
+          aria-label="Perguntas frequentes"
+        >
           {faqs.map((faq, index) => (
             <motion.div
               key={index}

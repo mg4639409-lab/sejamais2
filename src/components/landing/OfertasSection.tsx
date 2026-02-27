@@ -49,8 +49,7 @@ const legacyPlans = [
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Sedex",
-      "Garantia de 90 dias",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "Acesso ao grupo VIP",
     ],
     featured: false,
@@ -68,8 +67,7 @@ const legacyPlans = [
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Sedex",
-      "Garantia 90 dias",
+      "Frete Grátis — Envio Grátis para todo Brasil",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
     ],
@@ -88,8 +86,7 @@ const legacyPlans = [
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Sedex",
-      "Garantia 90 dias",
+      "Frete Grátis — Envio Grátis para todo Brasil",
     ],
     featured: false,
     cta: "Comprar 3 unidades",
@@ -171,14 +168,14 @@ const OfertasSection = () => {
         if (res?.ok && res.url) {
           toast({
             title: "Envio",
-            description: `Envio por ${res.shippingCarrier ?? "Sedex"} — Frete Grátis de 3 a 7 dias!`,
+            description: `Envio ${res.shippingCarrier ?? "para todo Brasil"} — Frete Grátis de 1 a 3 dias!`,
           });
           window.open(res.url, "_blank", "noopener");
         } else if (res?.url) {
           // fallback link available
           toast({
             title: "Checkout",
-            description: `Abrindo link de pagamento — envio por ${res.shippingCarrier ?? "Sedex — Frete Grátis de 3 a 7 dias"}`,
+            description: `Abrindo link de pagamento — envio ${res.shippingCarrier ?? "para todo Brasil"} — Frete Grátis de 1 a 3 dias!`,
           });
           window.open(res.url, "_blank", "noopener");
         } else {
@@ -211,7 +208,7 @@ const OfertasSection = () => {
   const getEstimatedArrival = useCallback(() => {
     const now = new Date();
     const arrival = new Date(now);
-    arrival.setDate(now.getDate() + 7);
+    arrival.setDate(now.getDate() + 3);
     const weekday = new Intl.DateTimeFormat("pt-BR", {
       weekday: "long",
     }).format(arrival);
@@ -313,7 +310,7 @@ const OfertasSection = () => {
                   {plan.installments}
                 </div>
                 <div className="text-sm text-teal-primary mt-2 font-semibold">
-                  Envio: Sedex — Frete Grátis
+                  Frete Grátis
                 </div>
               </div>
 
@@ -377,11 +374,9 @@ const OfertasSection = () => {
         >
           <div className="flex items-center gap-3 text-gray-medium">
             <Truck className="w-6 h-6 text-teal-primary" />
-            <span className="text-sm">Frete Grátis — Sedex</span>
-          </div>
-          <div className="flex items-center gap-3 text-gray-medium">
-            <Shield className="w-6 h-6 text-teal-primary" />
-            <span className="text-sm">Garantia 90 dias</span>
+            <span className="text-sm">
+              Frete Grátis — Envio Grátis para todo Brasil
+            </span>
           </div>
           <div className="flex items-center gap-3 text-gray-medium">
             <BookOpen className="w-6 h-6 text-teal-primary" />
@@ -393,21 +388,31 @@ const OfertasSection = () => {
           </div>
         </motion.div>
 
-        {/* Confirmation dialog: mostra claramente que o envio é via Sedex */}
+        {/* Confirmation dialog: mostra claramente para todo Brasil */}
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Confirmar compra</DialogTitle>
+              <DialogTitle className="mb-4">Confirmar compra</DialogTitle>
               <DialogDescription>
-                Envio por <strong>Sedex</strong> — Frete Grátis. <br /> <br />{" "}
-                Você será redirecionado para o checkout seguro do Pagar.me para
-                concluir o pagamento.
+                <strong className="text-primary text-xl font-semibold">
+                  Frete Grátis para todo o Brasil
+                </strong>
+                <br /> <br /> Você será redirecionado para o checkout seguro do
+                Pagar.me para concluir o pagamento.
               </DialogDescription>
               <DialogDescription className="flex items-center justify-between p-10">
                 <div className="flex flex-col">
-                  <h3>Sedex</h3>
+                  <h3 className="text-primary font-extrabold text-md">
+                    Envio Imediato
+                  </h3>
                   <p className="font-bold">
-                    Entrega de 3 a 7 dias - chegará até {getEstimatedArrival()}
+                    Prazo de entrega:{" "}
+                    <strong className="text-primary pr-1"> 1 a 3 dias</strong>
+                    úteis
+                    <br /> - chegará até
+                    <strong className="text-primary pl-1">
+                      {getEstimatedArrival()}
+                    </strong>
                   </p>
                 </div>
                 <div className="relative rounded-full p-5 bg-transparent-600 border border-teal-primary">

@@ -17,6 +17,30 @@ const HeroSection = () => {
       script.async = true;
       document.head.appendChild(script);
     }
+
+    // adicionar links de preload / dns-prefetch e script de timing
+    const resources = [
+      { rel: "preload", href: "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/embed.html" },
+      { rel: "preload", href: "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/player.js", as: "script" },
+      { rel: "preload", href: "https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js", as: "script" },
+      { rel: "preload", href: "https://cdn.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/69810f3812b542adc950b38a/main.m3u8", as: "fetch" },
+      { rel: "dns-prefetch", href: "https://cdn.converteai.net" },
+      { rel: "dns-prefetch", href: "https://scripts.converteai.net" },
+      { rel: "dns-prefetch", href: "https://images.converteai.net" },
+      { rel: "dns-prefetch", href: "https://api.vturb.com.br" },
+    ];
+    resources.forEach(({rel, href, as}) => {
+      const link = document.createElement("link");
+      link.rel = rel;
+      link.href = href;
+      if (as) link.as = as;
+      document.head.appendChild(link);
+    });
+
+    const timing = document.createElement("script");
+    timing.innerHTML =
+      '!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);';
+    document.head.appendChild(timing);
   }, []);
 
   return (
@@ -50,7 +74,7 @@ const HeroSection = () => {
               <iframe
                 frameBorder="0"
                 allowFullScreen
-                src="https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/698129690d9bb07e86a71dbd/v4/embed.html"
+                src="https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/embed.html"
                 id="ifr_698129690d9bb07e86a71dbd"
                 style={{
                   position: "absolute",
@@ -110,7 +134,7 @@ const HeroSection = () => {
               <iframe
                 frameBorder="0"
                 allowFullScreen
-                src="https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/698129690d9bb07e86a71dbd/v4/embed.html"
+                src="https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/embed.html"
                 id="ifr_698129690d9bb07e86a71dbd_mobile"
                 style={{
                   position: "absolute",
