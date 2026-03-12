@@ -1,0 +1,35 @@
+{
+  "sess_93a6fe86-e300-4593-aa8b-7263f599120d": {
+    "session_id": "sess_93a6fe86-e300-4593-aa8b-7263f599120d",
+    "planId": "experience",
+    "amount": 39999,
+    "tracking": {},
+    "status": "paid",
+    "created_at": "2026-03-02T19:15:01.711Z",
+    "expires_at": "2026-03-03T19:15:01.711Z",
+    "order_id": "ord_test",
+    "charge_id": "ch_test",
+    "payment_method": {
+      "card_token": "tok123",
+      "installments": 1
+    }
+  },
+  "sess_7b2c50c0-52b9-47b5-8fd7-cb6d67ee886a": {
+    "session_id": "sess_7b2c50c0-52b9-47b5-8fd7-cb6d67ee886a",
+    "planId": "experience",
+    "amount": 39999,
+    "tracking": {
+      "leadId": "d4a9ff53-bc1f-43b2-97de-8d5c074b7d57",
+      "fbclid": null,
+      "eventId": "3b595457-c73b-46b1-bdda-c17f7d355a65",
+      "fbp": null,
+      "fbc": null
+    },
+    "status": "pending",
+    "created_at": "2026-03-02T19:21:24.003Z",
+    "expires_at": "2026-03-03T19:21:24.003Z",
+    "order_id": null,
+    "charge_id": null,
+    "payment_method": null
+  }
+}

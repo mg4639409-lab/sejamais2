@@ -49,18 +49,18 @@ const legacyPlans = [
     installments: "ou 6x de R$ 66,67",
     features: [
       "1 pote EU+ (30 porções)",
-      "Frete Grátis — Envio Grátis para todo Brasil",
+      "Frete Grátis — Sedex",
       "Acesso ao grupo VIP",
+      "Parcele em 6x sem juros",
     ],
     featured: false,
     cta: "Comprar 1 unidade",
     badge: "1ª compra",
   },
   {
-    // 2‑unit option (last_option on server)
-    id: "last_option",
+    id: "transformation",
     hrefButton:
-      "https://payment-link-v3.pagar.me/pl_okertjn0DjM2v1mWp31SW3hwnvfubv56GHFSVD7r",
+      "https://payment-link-v3.pagar.me/pl_WeM5d2G7bQrk4Y5ImQir8vYXxEoVKg3P",
     name: "2 unidades",
     subtitle: "Maior economia",
     originalPrice: "R$ 999,98",
@@ -68,19 +68,19 @@ const legacyPlans = [
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
-      "Frete Grátis — Envio Grátis para todo Brasil",
+      "Frete Grátis — Sedex",
       "E-book: Guia da Juventude Funcional",
       "Acesso ao grupo VIP",
+      "Parcele em 6x sem juros",
     ],
-    featured: false,
+    featured: true,
     cta: "Comprar 2 unidades",
-    // no badge on server for last_option
+    badge: "Mais Vendido",
   },
   {
-    // 3‑unit option (transformation on server)
-    id: "transformation",
+    id: "last_option",
     hrefButton:
-      "https://payment-link-v3.pagar.me/pl_zygDjM2v1mWp31SW3hw74dPbZwAJVEle",
+      "https://payment-link-v3.pagar.me/pl_WeM5d2G7bQrk4Y5ImQir8vYXxEoVKg3P",
     name: "3 unidades",
     subtitle: "Melhor custo",
     originalPrice: "R$ 1.499,97",
@@ -88,11 +88,11 @@ const legacyPlans = [
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
-      "Frete Grátis — Envio Grátis para todo Brasil",
+      "Frete Grátis — Sedex",
+      "Parcele em 6x sem juros",
     ],
-    featured: true,
+    featured: false,
     cta: "Comprar 3 unidades",
-    badge: "Mais Vendido",
   },
 ];
 
@@ -141,10 +141,6 @@ const OfertasSection = () => {
       if (!planId) return;
       const plan = plans.find((p) => p.id === planId);
       const amount = plan?.amount || null;
-
-      // DEBUG: log plan being checked out to help diagnose mismatches
-      console.debug("handleCheckout planId", planId, "plan", plan);
-
       setLoadingPlan(planId);
       try {
         // get tracking info for checkout
@@ -175,14 +171,14 @@ const OfertasSection = () => {
         if (res?.ok && res.url) {
           toast({
             title: "Envio",
-            description: `Envio ${res.shippingCarrier ?? "para todo Brasil"} — Frete Grátis de 1 a 3 dias!`,
+            description: `Envio por ${res.shippingCarrier ?? "Sedex"} — Frete Grátis de 3 a 7 dias!`,
           });
           window.open(res.url, "_blank", "noopener");
         } else if (res?.url) {
           // fallback link available
           toast({
             title: "Checkout",
-            description: `Abrindo link de pagamento — envio ${res.shippingCarrier ?? "para todo Brasil"} — Frete Grátis de 1 a 3 dias!`,
+            description: `Abrindo link de pagamento — envio por ${res.shippingCarrier ?? "Sedex — Frete Grátis de 3 a 7 dias"}`,
           });
           window.open(res.url, "_blank", "noopener");
         } else {
@@ -317,7 +313,7 @@ const OfertasSection = () => {
                   {plan.installments}
                 </div>
                 <div className="text-sm text-teal-primary mt-2 font-semibold">
-                  Frete Grátis
+                  Envio: Sedex — Frete Grátis
                 </div>
               </div>
 
@@ -381,9 +377,7 @@ const OfertasSection = () => {
         >
           <div className="flex items-center gap-3 text-gray-medium">
             <Truck className="w-6 h-6 text-teal-primary" />
-            <span className="text-sm">
-              Frete Grátis — Envio Grátis para todo Brasil
-            </span>
+            <span className="text-sm">Frete Grátis — Sedex</span>
           </div>
           <div className="flex items-center gap-3 text-gray-medium">
             <BookOpen className="w-6 h-6 text-teal-primary" />
@@ -395,7 +389,7 @@ const OfertasSection = () => {
           </div>
         </motion.div>
 
-        {/* Confirmation dialog: mostra claramente para todo Brasil */}
+        {/* Confirmation dialog: mostra claramente que o envio é via Sedex */}
         <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
           <DialogContent>
             <DialogHeader>
@@ -407,7 +401,7 @@ const OfertasSection = () => {
                 <br /> <br /> Você será redirecionado para o checkout seguro do
                 Pagar.me para concluir o pagamento.
               </DialogDescription>
-              <DialogDescription className="flex flex-wrap items-center justify-between p-10">
+              <DialogDescription className="flex items-center justify-between p-10">
                 <div className="flex flex-col">
                   <h3 className="text-primary font-extrabold text-md">
                     Envio Imediato
@@ -415,8 +409,7 @@ const OfertasSection = () => {
                   <p className="font-bold">
                     Prazo de entrega:{" "}
                     <strong className="text-primary pr-1"> 1 a 3 dias</strong>
-                    úteis
-                    <br /> - chegará até
+                    úteis flex-wrap <br /> - chegará até
                     <strong className="text-primary pl-1">
                       {getEstimatedArrival()}
                     </strong>

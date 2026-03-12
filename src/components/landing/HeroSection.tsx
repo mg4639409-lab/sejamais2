@@ -10,8 +10,9 @@ const HeroSection = () => {
       'script[src="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/sdk.js"]',
     );
 
+    let script: HTMLScriptElement | null = null;
     if (!existingScript) {
-      const script = document.createElement("script");
+      script = document.createElement("script");
       script.src =
         "https://scripts.converteai.net/lib/js/smartplayer-wc/v4/sdk.js";
       script.async = true;
@@ -20,16 +21,31 @@ const HeroSection = () => {
 
     // adicionar links de preload / dns-prefetch e script de timing
     const resources = [
-      { rel: "preload", href: "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/embed.html" },
-      { rel: "preload", href: "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/player.js", as: "script" },
-      { rel: "preload", href: "https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js", as: "script" },
-      { rel: "preload", href: "https://cdn.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/69810f3812b542adc950b38a/main.m3u8", as: "fetch" },
+      {
+        rel: "preload",
+        href: "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69b423ab243e791f072b786c/v4/embed.html",
+      },
+      {
+        rel: "preload",
+        href: "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69b423ab243e791f072b786c/v4/player.js",
+        as: "script",
+      },
+      {
+        rel: "preload",
+        href: "https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js",
+        as: "script",
+      },
+      {
+        rel: "preload",
+        href: "https://cdn.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/69810f3812b542adc950b38a/main.m3u8",
+        as: "fetch",
+      },
       { rel: "dns-prefetch", href: "https://cdn.converteai.net" },
       { rel: "dns-prefetch", href: "https://scripts.converteai.net" },
       { rel: "dns-prefetch", href: "https://images.converteai.net" },
       { rel: "dns-prefetch", href: "https://api.vturb.com.br" },
     ];
-    resources.forEach(({rel, href, as}) => {
+    resources.forEach(({ rel, href, as }) => {
       const link = document.createElement("link");
       link.rel = rel;
       link.href = href;
@@ -39,8 +55,42 @@ const HeroSection = () => {
 
     const timing = document.createElement("script");
     timing.innerHTML =
-      '!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);';
+      "!function(i,n){i._plt=i._plt||(n&&n.timeOrigin?n.timeOrigin+n.now():Date.now())}(window,performance);";
     document.head.appendChild(timing);
+
+    // After ensuring the SDK script is present, set iframe srcs.
+    const setConverteIframes = () => {
+      const ids = [
+        "ifr_69b423ab243e791f072b786c",
+        "ifr_69b423ab243e791f072b786c_mobile",
+      ];
+      ids.forEach((id) => {
+        const el = document.getElementById(id) as HTMLIFrameElement | null;
+        if (!el) return;
+        const current = el.getAttribute("data-converte-set");
+        if (current === "1") return;
+        try {
+          el.src =
+            "https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69b423ab243e791f072b786c/v4/embed.html" +
+            (location.search || "?") +
+            "&vl=" +
+            encodeURIComponent(location.href);
+          el.setAttribute("data-converte-set", "1");
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    };
+
+    if (existingScript) {
+      // SDK already on page — set iframes now
+      setConverteIframes();
+    } else if (script) {
+      // wait for SDK to load, then set
+      script.onload = () => setConverteIframes();
+      // fallback: try after a short delay
+      setTimeout(setConverteIframes, 800);
+    }
   }, []);
 
   return (
@@ -61,21 +111,19 @@ const HeroSection = () => {
       <div className="hidden lg:flex relative z-10 flex-1 items-center justify-center w-full h-screen">
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           <div
-            id="ifr_698129690d9bb07e86a71dbd_wrapper"
+            id="ifr_69b423ab243e791f072b786c_wrapper"
             style={{ margin: "0 auto", width: "100%" }}
           >
             <div
-              style={{
-                position: "relative",
-                padding: "56.20608899297424% 0 0 0",
-              }}
-              id="ifr_698129690d9bb07e86a71dbd_aspect"
+              id="ifr_69b423ab243e791f072b786c_aspect"
+              style={{ position: "relative", padding: "56.25% 0 0 0" }}
             >
               <iframe
                 frameBorder="0"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                 allowFullScreen
-                src="https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/embed.html"
-                id="ifr_698129690d9bb07e86a71dbd"
+                src="about:blank"
+                id="ifr_69b423ab243e791f072b786c"
                 style={{
                   position: "absolute",
                   top: 0,
@@ -120,22 +168,20 @@ const HeroSection = () => {
         {/* Vídeo Mobile */}
         <div className="w-full px-4 mb-8">
           <div
-            id="ifr_698129690d9bb07e86a71dbd_wrapper_mobile"
+            id="ifr_69b423ab243e791f072b786c_wrapper"
             style={{ margin: "0 auto", width: "100%" }}
           >
             <div
-              style={{
-                position: "relative",
-                padding: "56.20608899297424% 0 0 0",
-              }}
-              id="ifr_698129690d9bb07e86a71dbd_aspect_mobile"
+              id="ifr_69b423ab243e791f072b786c_aspect_mobile"
+              style={{ position: "relative", padding: "56.25% 0 0 0" }}
               className="rounded-3xl shadow-elevated overflow-hidden"
             >
               <iframe
                 frameBorder="0"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                 allowFullScreen
-                src="https://scripts.converteai.net/ce246ce3-bcb0-4846-87d1-6fd1c81eefd1/players/69811001a3ae121d902236bc/v4/embed.html"
-                id="ifr_698129690d9bb07e86a71dbd_mobile"
+                src="about:blank"
+                id="ifr_69b423ab243e791f072b786c_mobile"
                 style={{
                   position: "absolute",
                   top: 0,

@@ -85,5 +85,317 @@
       },
       "amount": null
     }
+  },
+  {
+    "received_at": "2026-03-02T18:04:26.035Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772474666,
+    "event_id": "sess_e3f9d7ec-6799-4412-b2f4-1bb40568a46b",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_e3f9d7ec-6799-4412-b2f4-1bb40568a46b",
+      "order_id": null,
+      "charge_id": null,
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_e3f9d7ec-6799-4412-b2f4-1bb40568a46b",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T18:05:17.930Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772474717,
+    "event_id": "sess_24a024bb-f884-4c22-b665-439024799ef8",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_24a024bb-f884-4c22-b665-439024799ef8",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_24a024bb-f884-4c22-b665-439024799ef8",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T18:18:17.020Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772475497,
+    "event_id": "sess_6d8e25e4-da12-44d0-a110-83f3f1becbd5",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_6d8e25e4-da12-44d0-a110-83f3f1becbd5",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_6d8e25e4-da12-44d0-a110-83f3f1becbd5",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T18:21:35.781Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772475695,
+    "event_id": "sess_1d644f81-20cc-4df4-bacb-fa052e331736",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_1d644f81-20cc-4df4-bacb-fa052e331736",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_1d644f81-20cc-4df4-bacb-fa052e331736",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T18:22:42.285Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772475762,
+    "event_id": "sess_2126418a-1308-4345-81f6-ce3445c07131",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_2126418a-1308-4345-81f6-ce3445c07131",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_2126418a-1308-4345-81f6-ce3445c07131",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T18:24:52.216Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772475892,
+    "event_id": "sess_889f322c-02e6-4567-9d00-7e07c6170d55",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_889f322c-02e6-4567-9d00-7e07c6170d55",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_889f322c-02e6-4567-9d00-7e07c6170d55",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T18:25:44.845Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772475944,
+    "event_id": "sess_3e4269cb-680a-4bb8-a489-b7da2a91ebd2",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_3e4269cb-680a-4bb8-a489-b7da2a91ebd2",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "payment_method": null,
+      "installments": null,
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_3e4269cb-680a-4bb8-a489-b7da2a91ebd2",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T19:01:40.065Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772478100,
+    "event_id": "sess_f930226e-12ca-4127-98df-da7c19b7140e",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_f930226e-12ca-4127-98df-da7c19b7140e",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "payment_method": null,
+      "installments": null,
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_f930226e-12ca-4127-98df-da7c19b7140e",
+          "amount": 39999
+        }
+      }
+    }
+  },
+  {
+    "received_at": "2026-03-02T19:15:01.722Z",
+    "source_event": "charge.paid",
+    "event_name": "Purchase",
+    "event_time": 1772478901,
+    "event_id": "sess_93a6fe86-e300-4593-aa8b-7263f599120d",
+    "action_source": "website",
+    "user_data": {
+      "fbp": null,
+      "fbc": null,
+      "lead_id": null
+    },
+    "custom_data": {
+      "currency": "BRL",
+      "value": 399.99,
+      "payment_link_id": null,
+      "order_code": null,
+      "session_id": "sess_93a6fe86-e300-4593-aa8b-7263f599120d",
+      "order_id": "ord_test",
+      "charge_id": "ch_test",
+      "payment_method": null,
+      "installments": 1,
+      "status": "charge_paid"
+    },
+    "raw_webhook": {
+      "event": "charge.paid",
+      "data": {
+        "object": {
+          "order_id": "ord_test",
+          "charge_id": "ch_test",
+          "session_id": "sess_93a6fe86-e300-4593-aa8b-7263f599120d",
+          "amount": 39999
+        }
+      }
+    }
   }
 ]
