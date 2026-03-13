@@ -65,7 +65,7 @@ const DepoimentosSection = () => {
 
   const prevTestimonial = () => {
     setCurrentIndex(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length
+      (prev) => (prev - 1 + testimonials.length) % testimonials.length,
     );
   };
 
@@ -111,7 +111,7 @@ const DepoimentosSection = () => {
         </header>
 
         {/* Featured Testimonial - Desktop */}
-        <div className="hidden lg:block">
+        <div className="block">
           <motion.div
             key={currentIndex}
             initial={{ opacity: 0, y: 20 }}
@@ -158,7 +158,10 @@ const DepoimentosSection = () => {
           </motion.div>
 
           {/* Navigation */}
-          <nav className="flex items-center justify-center gap-4" aria-label="Navegação de depoimentos">
+          <nav
+            className="flex items-center justify-center gap-4"
+            aria-label="Navegação de depoimentos"
+          >
             <button
               onClick={prevTestimonial}
               className="w-12 h-12 rounded-full border border-sage-light flex items-center justify-center text-gray-medium hover:bg-teal-primary hover:text-pure-white hover:border-teal-primary transition-all duration-300 min-h-[48px] min-w-[48px]"
@@ -167,7 +170,11 @@ const DepoimentosSection = () => {
               <ChevronLeft className="w-5 h-5" aria-hidden="true" />
             </button>
 
-            <div className="flex gap-2" role="tablist" aria-label="Selecionar depoimento">
+            <div
+              className="flex gap-2"
+              role="tablist"
+              aria-label="Selecionar depoimento"
+            >
               {testimonials.map((testimonial, index) => (
                 <button
                   key={index}
@@ -195,7 +202,7 @@ const DepoimentosSection = () => {
         </div>
 
         {/* Testimonials Grid - Mobile */}
-        <div className="lg:hidden grid gap-6">
+        {/* <div className="lg:hidden grid gap-6">
           {testimonials.slice(0, 4).map((testimonial, index) => (
             <motion.div
               key={testimonial.id}
@@ -236,7 +243,7 @@ const DepoimentosSection = () => {
               </div>
             </motion.div>
           ))}
-        </div>
+        </div> */}
       </div>
     </section>
   );

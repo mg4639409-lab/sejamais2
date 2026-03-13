@@ -249,7 +249,7 @@ const Index = () => {
         <Header />
         <main id="main-content" role="main">
           <HeroSection />
-          <ProblemaSection />
+          {/* <ProblemaSection /> */}
           {/* <ApresentacaoSection /> */}
           {/* <BeneficiosSection /> */}
           {/* <DiferenciaisSection /> */}

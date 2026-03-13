@@ -409,7 +409,8 @@ const OfertasSection = () => {
                   <p className="font-bold">
                     Prazo de entrega:{" "}
                     <strong className="text-primary pr-1"> 1 a 3 dias</strong>
-                    úteis flex-wrap <br /> - chegará até
+                    úteis
+                    <br /> - chegará até
                     <strong className="text-primary pl-1">
                       {getEstimatedArrival()}
                     </strong>
