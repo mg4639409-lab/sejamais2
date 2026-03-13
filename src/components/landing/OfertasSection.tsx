@@ -64,7 +64,7 @@ const legacyPlans = [
     name: "2 unidades",
     subtitle: "Maior economia",
     originalPrice: "R$ 999,98",
-    price: "R$ 759,98 (R$ 379,99/unidade)",
+    price: "R$ 759,98",
     installments: "ou 6x de R$ 126,66",
     features: [
       "2 potes EU+ (60 porções)",
@@ -84,7 +84,7 @@ const legacyPlans = [
     name: "3 unidades",
     subtitle: "Melhor custo",
     originalPrice: "R$ 1.499,97",
-    price: "R$ 1.079,97 (R$ 359,99/unidade)",
+    price: "R$ 1.079,97",
     installments: "ou 6x de R$ 180,00",
     features: [
       "3 potes EU+ (90 porções)",
