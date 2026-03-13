@@ -39,7 +39,7 @@ const PLANS = {
     features: [
       "1 pote EU+ (30 porções)",
       "Frete Grátis — Sedex",
-      "Garantia de 90 dias",
+      "Parcele em 6x sem juros",
       "Acesso ao grupo VIP",
     ],
     featured: false,
@@ -60,7 +60,7 @@ const PLANS = {
     features: [
       "2 potes EU+ (60 porções)",
       "Frete Grátis — Sedex",
-      "Garantia 90 dias",
+      "Parcele em 6x sem juros",
     ],
     featured: false,
     cta: "Comprar 2 unidades",
@@ -79,9 +79,9 @@ const PLANS = {
     features: [
       "3 potes EU+ (90 porções)",
       "Frete Grátis — Sedex",
-      "Garantia 90 dias",
-      "E-book: Guia da Juventude Funcional",
+      "Parcele em 6x sem juros",
       "Acesso ao grupo VIP",
+      "E-book: Guia da Juventude Funcional",
     ],
     featured: true,
     cta: "Comprar 3 unidades",
@@ -445,19 +445,19 @@ fastify.post("/api/checkout", async (request, reply) => {
               map = {};
             }
           }
-           map[envLinkRaw] = {
-             payment_link_id: envLinkRaw,
-             url,
-             tracking: tracking || null,
-             amount: plan.amount || null,
-             order_code: null,
-             ts: new Date().toISOString(),
-           };
-           fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
-         }
-       } catch (err) {
-         request.log.warn({ err }, "failed to persist env paymentlink mapping");
-       }
+          map[envLinkRaw] = {
+            payment_link_id: envLinkRaw,
+            url,
+            tracking: tracking || null,
+            amount: plan.amount || null,
+            order_code: null,
+            ts: new Date().toISOString(),
+          };
+          fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
+        }
+      } catch (err) {
+        request.log.warn({ err }, "failed to persist env paymentlink mapping");
+      }
 
       return reply.send({
         ok: true,
@@ -494,48 +494,51 @@ fastify.post("/api/checkout", async (request, reply) => {
       },
     );
 
-      if (listRes.ok) {
-        const listJson = await listRes.json();
-        const maybeArray = Array.isArray(listJson)
-          ? listJson
-          : listJson?.data || [];
-        if (maybeArray.length > 0 && maybeArray[0].url) {
-          // persist mapping for reuse when tracking is provided
-          try {
-            if (tracking) {
-              const mappingPath = path.resolve(__dirname, "paymentlinks.json");
-              let map = {};
-              if (fs.existsSync(mappingPath)) {
-                try {
-                  map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
-                } catch (e) {
-                  map = {};
-                }
+    if (listRes.ok) {
+      const listJson = await listRes.json();
+      const maybeArray = Array.isArray(listJson)
+        ? listJson
+        : listJson?.data || [];
+      if (maybeArray.length > 0 && maybeArray[0].url) {
+        // persist mapping for reuse when tracking is provided
+        try {
+          if (tracking) {
+            const mappingPath = path.resolve(__dirname, "paymentlinks.json");
+            let map = {};
+            if (fs.existsSync(mappingPath)) {
+              try {
+                map = JSON.parse(fs.readFileSync(mappingPath, "utf8") || "{}");
+              } catch (e) {
+                map = {};
               }
-              const id =
-                maybeArray[0].id || maybeArray[0].payment_link_id || planId;
-              map[id] = {
-                order_code: null,
-                payment_link_id: id,
-                url: maybeArray[0].url,
-                tracking: tracking || null,
-                amount: plan.amount || null,
-                ts: new Date().toISOString(),
-              };
-              fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
             }
-          } catch (err) {
-            request.log.warn({ err }, "failed to persist reused paymentlink mapping");
+            const id =
+              maybeArray[0].id || maybeArray[0].payment_link_id || planId;
+            map[id] = {
+              order_code: null,
+              payment_link_id: id,
+              url: maybeArray[0].url,
+              tracking: tracking || null,
+              amount: plan.amount || null,
+              ts: new Date().toISOString(),
+            };
+            fs.writeFileSync(mappingPath, JSON.stringify(map, null, 2), "utf8");
           }
-
-          return reply.send({
-            ok: true,
-            url: maybeArray[0].url,
-            reused: true,
-            shippingCarrier: "Sedex",
-          });
+        } catch (err) {
+          request.log.warn(
+            { err },
+            "failed to persist reused paymentlink mapping",
+          );
         }
+
+        return reply.send({
+          ok: true,
+          url: maybeArray[0].url,
+          reused: true,
+          shippingCarrier: "Sedex",
+        });
       }
+    }
 
     // 2) criar novo Payment Link
     const payload = {
@@ -818,7 +821,7 @@ fastify.post("/api/webhook/pagarme", async (request, reply) => {
       { body: request.body },
       "important event received (consider fulfill/notify)",
     );
-      // Attempt to correlate webhook to tracking data saved earlier
+    // Attempt to correlate webhook to tracking data saved earlier
     try {
       const body = request.body || {};
       // heuristics to find payment link id / order code in webhook payload
