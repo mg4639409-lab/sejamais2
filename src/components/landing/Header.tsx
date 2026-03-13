@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { href: "#beneficios", label: "Benefícios" },
-  { href: "#diferenciais", label: "Diferenciais" },
+  // { href: "#beneficios", label: "Benefícios" },
+  // { href: "#diferenciais", label: "Diferenciais" },
   { href: "#depoimentos", label: "Depoimentos" },
   { href: "#ofertas", label: "Ofertas" },
   { href: "#faq", label: "FAQ" },

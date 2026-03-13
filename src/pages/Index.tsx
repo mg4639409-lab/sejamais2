@@ -250,12 +250,12 @@ const Index = () => {
         <main id="main-content" role="main">
           <HeroSection />
           <ProblemaSection />
-          <ApresentacaoSection />
-          <BeneficiosSection />
-          <DiferenciaisSection />
-          <DepoimentosSection />
+          {/* <ApresentacaoSection /> */}
+          {/* <BeneficiosSection /> */}
+          {/* <DiferenciaisSection /> */}
           <OfertasSection />
           <GarantiaSection />
+          <DepoimentosSection />
           <FAQSection />
           <CTAFinalSection />
         </main>
