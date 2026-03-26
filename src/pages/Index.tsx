@@ -10,6 +10,7 @@ import GarantiaSection from "@/components/landing/GarantiaSection";
 import FAQSection from "@/components/landing/FAQSection";
 import CTAFinalSection from "@/components/landing/CTAFinalSection";
 import Footer from "@/components/landing/Footer";
+import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
 import { Helmet } from "react-helmet-async";
 import { useEffect } from "react";
 import trackingLib from "@/lib/tracking";
@@ -260,6 +261,7 @@ const Index = () => {
           <CTAFinalSection />
         </main>
         <Footer />
+        <FloatingWhatsAppButton />
       </div>
     </>
   );
